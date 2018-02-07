@@ -9,7 +9,7 @@ void SendSensorData(float h,float t) {
   Serial.print(F("Verbinde mit "));
   Serial.println(THINGSPEAK_HOST);
 
-  WiFiClient client;
+  
 
   delay(200);
 

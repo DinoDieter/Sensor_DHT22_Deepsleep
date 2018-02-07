@@ -1,18 +1,24 @@
 #include <Arduino.h>
 #include <ESP8266WiFi.h>
+#include <ArduinoJson.h>
 #include "config/hardware.h"
 
 
-
-
 DHT dht(DHTPIN, DHTTYPE);
+
+
 void setup() {
  // Schnittstelle einrichten
   Serial.begin(115200);
   Serial.println("DHT22 sensor!");
+
+  esp_client.setServer(mqtt_server, 1883);
+  esp_client.setCallback(callback);
   
   //Sensor einrichten
   dht.begin();
+  
+  
 }
 
 void loop() {
@@ -33,7 +39,8 @@ void loop() {
   Serial.print("Temperature: ");
   Serial.print(t);
   Serial.println(" *C ");
-  //we delay a little bit for next read
+  
+ 
   WiFi.begin("17aqr54", "ottootto");
 
   while (WiFi.status() != WL_CONNECTED) {
@@ -45,9 +52,24 @@ void loop() {
   Serial.println("WiFi connected");
   Serial.println("IP address: ");
   Serial.println(WiFi.localIP());  
+ 
+  Serial.println("Start MQTT Verbindung");
 
-  SendSensorData(h,t);
+  if (!esp_client.connected()) {
+    reconnect(h,t);
+    }
 
+   // Daten nach Thinspeak senden
+   SendSensorData(h,t);
+
+  //Kleine Schleife zum empfangen von retain Messages 
+  for ( uint8_t a = 0;a<10;a++){
+    //MQTT bedienen
+    esp_client.loop();
+    delay(50);
+    yield();
+  }
+  
   Serial.println("gehe schlafen");
   ESP.deepSleep(SLEEP_TIME,WAKE_RF_DEFAULT);
   delay(500);
